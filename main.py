@@ -3,6 +3,7 @@
 import http.server
 import json
 import sys
+from healthcheck_utils import check_health, format_metrics
 
 class HealthHandler(http.server.BaseHTTPRequestHandler):
     def do_GET(self):
@@ -10,7 +11,15 @@ class HealthHandler(http.server.BaseHTTPRequestHandler):
             self.send_response(200)
             self.send_header('Content-Type', 'application/json')
             self.end_headers()
-            self.wfile.write(json.dumps({"status": "ok"}).encode())
+            result = check_health(services=["database", "cache"])
+            self.wfile.write(json.dumps(result).encode())
+        elif self.path == '/metrics':
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json')
+            self.end_headers()
+            import os
+            metrics = format_metrics(os.uname().nodename)
+            self.wfile.write(json.dumps(metrics).encode())
         else:
             self.send_response(404)
             self.end_headers()
